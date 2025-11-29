@@ -3,329 +3,377 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Creachive</title>
+    <title>Creachive - Social Hybrid</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"></script>
+
     <style>
-        /* Custom Scrollbar for Stories */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-        
-        .story-ring {
-            background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); 
-            padding: 3px;
-            border-radius: 50%;
-        }
-
-        .snap-btn {
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            border: 4px solid white;
-            position: relative;
-        }
-        .snap-btn::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 55px;
-            height: 55px;
-            background-color: white;
-            border-radius: 50%;
-            transition: 0.2s;
-        }
-        .snap-btn:active::after {
-            width: 45px;
-            height: 45px;
-            background-color: #ff0000;
-        }
-
-        /* Animations */
-        @keyframes fadein {
-            from { opacity: 0; }
-            to   { opacity: 1; }
-        }
-        .tab-content {
-            animation: fadein 0.3s ease-in-out;
-        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .story-ring { background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); padding: 3px; border-radius: 50%; }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .hidden { display: none !important; }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-900 h-screen flex flex-col overflow-hidden">
+<body class="bg-gray-100 text-gray-900 h-screen flex flex-col overflow-hidden font-sans">
 
-    <!-- TOP HEADER -->
-    <header class="bg-white shadow-sm px-4 py-3 flex justify-between items-center z-10">
-        <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600 font-sans tracking-tighter">Creachive</h1>
-        <div class="flex gap-4 text-xl text-gray-600">
-            <i class="fas fa-search"></i>
-            <i class="fas fa-heart"></i>
-            <i class="fab fa-facebook-messenger"></i>
+    <!-- AUTH SCREEN -->
+    <div id="auth-screen" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center p-6 hidden">
+        <h1 class="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600 mb-8 tracking-tighter">Creachive</h1>
+        
+        <div class="w-full max-w-sm space-y-4">
+            <input type="email" id="auth-email" placeholder="Email" class="w-full p-3 bg-gray-50 border border-gray-300 rounded focus:outline-none focus:border-purple-500">
+            <input type="password" id="auth-pass" placeholder="Password" class="w-full p-3 bg-gray-50 border border-gray-300 rounded focus:outline-none focus:border-purple-500">
+            <input type="text" id="auth-username" placeholder="Username (Register only)" class="w-full p-3 bg-gray-50 border border-gray-300 rounded focus:outline-none focus:border-purple-500 hidden">
+            
+            <button onclick="handleLogin()" id="btn-login" class="w-full bg-blue-500 text-white font-bold py-3 rounded hover:bg-blue-600 transition">Log In</button>
+            <button onclick="handleRegister()" id="btn-register" class="w-full bg-white text-blue-500 font-bold py-3 rounded border border-blue-500 hover:bg-blue-50 transition hidden">Sign Up</button>
+            
+            <p class="text-center text-sm text-gray-500 mt-4 cursor-pointer" onclick="toggleAuthMode()">
+                <span id="auth-toggle-text">Don't have an account? <b>Sign Up</b></span>
+            </p>
+            <p id="auth-error" class="text-red-500 text-center text-sm mt-2"></p>
+        </div>
+    </div>
+
+    <!-- APP HEADER -->
+    <header class="bg-white shadow-sm px-4 py-3 flex justify-between items-center z-10 shrink-0">
+        <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600 tracking-tighter">Creachive</h1>
+        <div class="flex gap-4 text-xl text-gray-600 items-center">
+            <i class="fas fa-plus-square text-purple-600 cursor-pointer" onclick="showCreatePost()"></i>
+            <i class="fas fa-sign-out-alt cursor-pointer hover:text-red-500" onclick="handleLogout()"></i>
         </div>
     </header>
 
-    <!-- MAIN CONTENT AREA -->
-    <main id="app-content" class="flex-1 overflow-y-auto no-scrollbar relative">
-        <!-- Content injected via JS -->
+    <!-- MAIN CONTENT -->
+    <main id="app-content" class="flex-1 overflow-y-auto no-scrollbar relative bg-gray-50">
+        <!-- Views will be injected here -->
     </main>
 
-    <!-- BOTTOM NAVIGATION -->
-    <nav class="bg-white border-t border-gray-200 h-16 flex justify-around items-center z-20">
-        <button onclick="renderFeed()" class="nav-btn text-2xl text-purple-600 hover:text-purple-800 transition"><i class="fas fa-home"></i></button>
-        <button onclick="renderExplore()" class="nav-btn text-2xl text-gray-400 hover:text-purple-600 transition"><i class="fas fa-search"></i></button>
-        <button onclick="renderCamera()" class="nav-btn text-3xl text-gray-400 hover:text-purple-600 transition transform hover:scale-110"><i class="far fa-plus-square"></i></button>
-        <button onclick="renderChat()" class="nav-btn text-2xl text-gray-400 hover:text-green-600 transition"><i class="fab fa-whatsapp"></i></button>
-        <button onclick="renderProfile()" class="nav-btn text-2xl text-gray-400 hover:text-purple-600 transition"><i class="fas fa-user-circle"></i></button>
+    <!-- BOTTOM NAV -->
+    <nav class="bg-white border-t border-gray-200 h-16 flex justify-around items-center z-20 shrink-0">
+        <button onclick="renderFeed()" id="nav-home" class="nav-btn text-2xl text-purple-600"><i class="fas fa-home"></i></button>
+        <button onclick="renderExplore()" id="nav-explore" class="nav-btn text-2xl text-gray-400"><i class="fas fa-search"></i></button>
+        <button onclick="renderChat()" id="nav-chat" class="nav-btn text-2xl text-gray-400"><i class="fab fa-whatsapp"></i></button>
+        <button onclick="renderProfile()" id="nav-profile" class="nav-btn text-2xl text-gray-400"><i class="fas fa-user-circle"></i></button>
     </nav>
 
-    <script>
-        // --- MOCK DATA ---
-        const stories = [
-            { user: "alex_dev", img: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alex" },
-            { user: "sarah_travels", img: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah" },
-            { user: "john_doe", img: "https://api.dicebear.com/7.x/avataaars/svg?seed=John" },
-            { user: "jane_art", img: "https://api.dicebear.com/7.x/avataaars/svg?seed=Jane" },
-            { user: "mike_gym", img: "https://api.dicebear.com/7.x/avataaars/svg?seed=Mike" },
-        ];
+    <!-- CREATE POST MODAL -->
+    <div id="create-modal" class="fixed inset-0 bg-black bg-opacity-80 z-50 hidden flex flex-col justify-end">
+        <div class="bg-white rounded-t-2xl p-6 fade-in h-3/4 flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <button onclick="closeCreatePost()" class="text-gray-500">Cancel</button>
+                <h3 class="font-bold">New Post</h3>
+                <button onclick="submitPost()" class="text-blue-500 font-bold">Share</button>
+            </div>
+            <textarea id="post-caption" class="w-full p-4 bg-gray-100 rounded-lg mb-4 flex-1 resize-none focus:outline-none" placeholder="Write a caption..."></textarea>
+            <input id="post-image-url" type="text" class="w-full p-3 bg-gray-100 rounded-lg mb-4" placeholder="Image URL (optional)">
+            <p class="text-xs text-gray-400 text-center">Supports direct image links only.</p>
+        </div>
+    </div>
 
-        const posts = [
-            {
-                id: 1,
-                user: "alex_dev",
-                avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alex",
-                image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=600&h=400&fit=crop",
-                caption: "Coding late into the night! 💻 #developer #creachive",
-                likes: 124,
-                comments: 12
-            },
-            {
-                id: 2,
-                user: "sarah_travels",
-                avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-                image: "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=600&h=400&fit=crop",
-                caption: "Switzerland is breathtaking. 🏔️",
-                likes: 856,
-                comments: 45
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- CONFIGURATION ---
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'creachive-v1';
+
+        // --- STATE ---
+        let currentUser = null;
+        let isRegisterMode = false;
+        let unsubscribeFeed = null;
+        let unsubscribeChat = null;
+
+        // --- DOM ELEMENTS ---
+        const authScreen = document.getElementById('auth-screen');
+        const appContent = document.getElementById('app-content');
+        const authError = document.getElementById('auth-error');
+
+        // --- AUTH LOGIC ---
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            if (user) {
+                authScreen.classList.add('hidden');
+                renderFeed(); // Load default view
+            } else {
+                authScreen.classList.remove('hidden');
             }
-        ];
+        });
 
-        const chats = [
-            { name: "Mom", message: "Dinner is ready!", time: "18:30", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Mom" },
-            { name: "Dev Team", message: "Meeting starts in 5.", time: "14:00", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Team" },
-            { name: "John Doe", message: "Did you see the new update?", time: "Yesterday", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=John" },
-        ];
+        window.handleLogin = async () => {
+            const email = document.getElementById('auth-email').value;
+            const pass = document.getElementById('auth-pass').value;
+            if(!email || !pass) return showError("Please fill all fields");
+            
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+            } catch (e) {
+                showError(e.message);
+            }
+        };
 
-        // --- RENDER FUNCTIONS ---
+        window.handleRegister = async () => {
+            const email = document.getElementById('auth-email').value;
+            const pass = document.getElementById('auth-pass').value;
+            const username = document.getElementById('auth-username').value;
+            if(!email || !pass || !username) return showError("Please fill all fields");
 
-        function setActiveNav(index) {
-            const btns = document.querySelectorAll('.nav-btn');
-            btns.forEach(b => {
+            try {
+                const cred = await createUserWithEmailAndPassword(auth, email, pass);
+                await updateProfile(cred.user, { displayName: username });
+                
+                // Save user to public collection
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'users', cred.user.uid), {
+                    username: username,
+                    email: email,
+                    joinedAt: serverTimestamp()
+                });
+            } catch (e) {
+                showError(e.message);
+            }
+        };
+
+        window.handleLogout = () => signOut(auth);
+
+        window.toggleAuthMode = () => {
+            isRegisterMode = !isRegisterMode;
+            document.getElementById('btn-login').classList.toggle('hidden');
+            document.getElementById('btn-register').classList.toggle('hidden');
+            document.getElementById('auth-username').classList.toggle('hidden');
+            document.getElementById('auth-toggle-text').innerHTML = isRegisterMode ? 
+                "Already have an account? <b>Log In</b>" : "Don't have an account? <b>Sign Up</b>";
+        };
+
+        function showError(msg) {
+            authError.innerText = msg.replace('Firebase:', '').replace('auth/', '');
+        }
+
+        // --- NAVIGATION & UI ---
+        function setActiveNav(id) {
+            document.querySelectorAll('.nav-btn').forEach(b => {
                 b.classList.remove('text-purple-600', 'text-green-600');
                 b.classList.add('text-gray-400');
             });
-            // Simple color logic
-            if(index === 3) btns[index].classList.add('text-green-600'); // WhatsApp green
-            else btns[index].classList.add('text-purple-600');
+            const active = document.getElementById(id);
+            if(id === 'nav-chat') active.classList.add('text-green-600');
+            else active.classList.add('text-purple-600');
+            active.classList.remove('text-gray-400');
             
-            btns[index].classList.remove('text-gray-400');
+            // Cleanup listeners when switching views
+            if(unsubscribeFeed) unsubscribeFeed();
+            if(unsubscribeChat) unsubscribeChat();
         }
 
-        function renderFeed() {
-            setActiveNav(0);
-            const app = document.getElementById('app-content');
-            
-            // Stories HTML
-            let storiesHtml = stories.map(s => `
-                <div class="flex flex-col items-center min-w-[70px] cursor-pointer">
-                    <div class="story-ring">
-                        <img src="${s.img}" class="w-14 h-14 rounded-full border-2 border-white p-0.5 bg-white">
-                    </div>
-                    <span class="text-xs mt-1 truncate w-16 text-center">${s.user}</span>
-                </div>
-            `).join('');
-
-            // Posts HTML
-            let postsHtml = posts.map(p => `
-                <div class="bg-white mb-4 shadow-sm pb-2">
-                    <div class="flex items-center p-3">
-                        <img src="${p.avatar}" class="w-8 h-8 rounded-full mr-3">
-                        <span class="font-bold text-sm">${p.user}</span>
-                        <i class="fas fa-ellipsis-h ml-auto text-gray-500"></i>
-                    </div>
-                    <img src="${p.image}" class="w-full h-auto object-cover max-h-[400px]">
-                    <div class="px-3 py-2">
-                        <div class="flex gap-4 text-2xl mb-2">
-                            <i class="far fa-heart cursor-pointer hover:text-red-500 transition" onclick="toggleLike(this)"></i>
-                            <i class="far fa-comment cursor-pointer"></i>
-                            <i class="far fa-paper-plane cursor-pointer"></i>
-                            <i class="far fa-bookmark ml-auto cursor-pointer"></i>
-                        </div>
-                        <p class="font-bold text-sm mb-1">${p.likes} likes</p>
-                        <p class="text-sm"><span class="font-bold mr-1">${p.user}</span>${p.caption}</p>
-                        <p class="text-gray-400 text-xs mt-1 uppercase">View all ${p.comments} comments</p>
-                    </div>
-                </div>
-            `).join('');
-
-            app.innerHTML = `
-                <div class="tab-content pb-20">
+        // --- VIEW: FEED ---
+        window.renderFeed = () => {
+            setActiveNav('nav-home');
+            appContent.innerHTML = `
+                <div class="pb-4">
                     <!-- Stories Bar -->
-                    <div class="bg-white p-4 flex gap-4 overflow-x-auto no-scrollbar border-b border-gray-100">
-                        ${storiesHtml}
+                    <div class="bg-white p-4 flex gap-4 overflow-x-auto no-scrollbar border-b border-gray-100 mb-2">
+                        <div class="flex flex-col items-center min-w-[70px]">
+                            <div class="story-ring p-[2px]">
+                                <div class="bg-white rounded-full p-0.5">
+                                    <div class="w-14 h-14 bg-gray-200 rounded-full flex items-center justify-center text-xl cursor-pointer" onclick="showCreatePost()">+</div>
+                                </div>
+                            </div>
+                            <span class="text-xs mt-1">Add Story</span>
+                        </div>
+                        <!-- Mock Stories -->
+                        ${[1,2,3,4].map(i => `
+                             <div class="flex flex-col items-center min-w-[70px]">
+                                <div class="story-ring">
+                                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=${i}" class="w-14 h-14 rounded-full border-2 border-white bg-white">
+                                </div>
+                                <span class="text-xs mt-1">user_${i}</span>
+                            </div>
+                        `).join('')}
                     </div>
-                    <!-- Feed -->
-                    <div class="mt-2">
-                        ${postsHtml}
+                    <div id="feed-container" class="space-y-4">
+                        <div class="p-8 text-center text-gray-400">Loading posts...</div>
                     </div>
                 </div>
             `;
-        }
 
-        function renderExplore() {
-            setActiveNav(1);
-            const app = document.getElementById('app-content');
-            const images = [
-                'https://source.unsplash.com/random/300x300?sig=1',
-                'https://source.unsplash.com/random/300x300?sig=2',
-                'https://source.unsplash.com/random/300x300?sig=3',
-                'https://source.unsplash.com/random/300x300?sig=4',
-                'https://source.unsplash.com/random/300x300?sig=5',
-                'https://source.unsplash.com/random/300x300?sig=6'
-            ];
+            const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'posts'));
             
-            // Mock grid
-            app.innerHTML = `
-                <div class="tab-content grid grid-cols-3 gap-1 p-1">
-                    ${[1,2,3,4,5,6,7,8,9,10,11,12].map(i => `
-                        <div class="aspect-square bg-gray-200 overflow-hidden relative group">
-                            <img src="https://picsum.photos/300/300?random=${i}" class="w-full h-full object-cover">
+            // NOTE: Using client-side sorting because composite indexes are restricted
+            unsubscribeFeed = onSnapshot(q, (snapshot) => {
+                const posts = [];
+                snapshot.forEach(doc => posts.push({id: doc.id, ...doc.data()}));
+                
+                // Sort by timestamp desc (newest first)
+                posts.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+
+                const container = document.getElementById('feed-container');
+                if(posts.length === 0) {
+                    container.innerHTML = `<div class="p-8 text-center text-gray-500">No posts yet. Be the first!</div>`;
+                    return;
+                }
+
+                container.innerHTML = posts.map(p => `
+                    <div class="bg-white shadow-sm pb-2">
+                        <div class="flex items-center p-3">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=${p.username}" class="w-8 h-8 rounded-full mr-3 bg-gray-100">
+                            <span class="font-bold text-sm">${p.username}</span>
+                        </div>
+                        ${p.image ? `<img src="${p.image}" class="w-full h-auto max-h-[500px] object-cover bg-gray-100" onerror="this.style.display='none'">` : ''}
+                        <div class="px-3 py-2">
+                            <div class="flex gap-4 text-2xl mb-2 text-gray-700">
+                                <i class="far fa-heart cursor-pointer hover:text-red-500"></i>
+                                <i class="far fa-comment cursor-pointer"></i>
+                                <i class="far fa-paper-plane cursor-pointer"></i>
+                            </div>
+                            <p class="text-sm"><span class="font-bold mr-1">${p.username}</span>${p.caption}</p>
+                            <p class="text-gray-400 text-xs mt-2 uppercase text-[10px]">${p.createdAt ? new Date(p.createdAt.seconds * 1000).toLocaleDateString() : 'Just now'}</p>
+                        </div>
+                    </div>
+                `).join('');
+            });
+        };
+
+        // --- CREATE POST ---
+        window.showCreatePost = () => document.getElementById('create-modal').classList.remove('hidden');
+        window.closeCreatePost = () => document.getElementById('create-modal').classList.add('hidden');
+        
+        window.submitPost = async () => {
+            const caption = document.getElementById('post-caption').value;
+            const imgUrl = document.getElementById('post-image-url').value;
+            if(!caption && !imgUrl) return;
+
+            try {
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'posts'), {
+                    username: currentUser.displayName || 'Anonymous',
+                    uid: currentUser.uid,
+                    caption: caption,
+                    image: imgUrl,
+                    likes: 0,
+                    createdAt: serverTimestamp()
+                });
+                closeCreatePost();
+                document.getElementById('post-caption').value = "";
+                document.getElementById('post-image-url').value = "";
+            } catch (e) {
+                alert("Error posting: " + e.message);
+            }
+        };
+
+        // --- VIEW: CHAT ---
+        window.renderChat = () => {
+            setActiveNav('nav-chat');
+            appContent.innerHTML = `
+                <div class="flex flex-col h-full bg-white">
+                    <div class="p-4 border-b border-gray-200 bg-gray-50">
+                        <h2 class="font-bold text-green-600">Creachive Community</h2>
+                        <p class="text-xs text-gray-500">Global Chat Room</p>
+                    </div>
+                    <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 bg-[#e5ddd5]">
+                        <div class="text-center text-gray-500 text-sm my-4">Loading messages...</div>
+                    </div>
+                    <div class="p-2 bg-gray-100 flex items-center gap-2">
+                        <input type="text" id="chat-input" class="flex-1 p-3 rounded-full border border-gray-300 focus:outline-none" placeholder="Type a message...">
+                        <button onclick="sendChat()" class="w-10 h-10 bg-green-500 text-white rounded-full flex items-center justify-center shadow"><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                </div>
+            `;
+
+            const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'messages'));
+            
+            unsubscribeChat = onSnapshot(q, (snapshot) => {
+                const messages = [];
+                snapshot.forEach(doc => messages.push(doc.data()));
+                
+                // Client side sort
+                messages.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+
+                const container = document.getElementById('chat-messages');
+                container.innerHTML = messages.map(m => {
+                    const isMe = m.uid === currentUser.uid;
+                    return `
+                        <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}">
+                            <div class="${isMe ? 'bg-[#dcf8c6]' : 'bg-white'} p-2 rounded-lg shadow max-w-[80%] text-sm">
+                                ${!isMe ? `<span class="text-xs text-orange-500 font-bold block mb-1">${m.username}</span>` : ''}
+                                ${m.text}
+                                <span class="text-[10px] text-gray-500 block text-right mt-1">${m.createdAt ? new Date(m.createdAt.seconds * 1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '...'}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Auto scroll to bottom
+                container.scrollTop = container.scrollHeight;
+            });
+        };
+
+        window.sendChat = async () => {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if(!text) return;
+
+            try {
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'messages'), {
+                    text: text,
+                    uid: currentUser.uid,
+                    username: currentUser.displayName || 'User',
+                    createdAt: serverTimestamp()
+                });
+                input.value = '';
+            } catch(e) {
+                console.error(e);
+            }
+        };
+
+        // --- VIEW: EXPLORE ---
+        window.renderExplore = () => {
+            setActiveNav('nav-explore');
+            appContent.innerHTML = `
+                 <div class="grid grid-cols-3 gap-1 p-1">
+                    ${[10,11,12,13,14,15,16,17,18].map(i => `
+                        <div class="aspect-square bg-gray-200 relative group overflow-hidden">
+                            <img src="https://picsum.photos/300/300?random=${i}" class="w-full h-full object-cover transition duration-300 group-hover:scale-110">
+                            <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition"></div>
                         </div>
                     `).join('')}
                 </div>
             `;
-        }
+        };
 
-        function renderCamera() {
-            setActiveNav(2);
-            document.getElementById('app-content').innerHTML = `
-                <div class="tab-content h-full bg-black relative flex flex-col items-center justify-end pb-10">
-                    <div class="absolute inset-0 flex items-center justify-center text-gray-500">
-                        <i class="fas fa-camera text-6xl opacity-20"></i>
-                        <p class="absolute mt-20 text-gray-500">Camera Permission Required</p>
-                    </div>
-                    
-                    <!-- Camera UI Overlay -->
-                    <div class="z-10 w-full px-8 flex justify-between items-center mb-8">
-                        <i class="fas fa-images text-white text-3xl shadow-lg"></i>
-                        <button class="snap-btn bg-transparent"></button>
-                        <i class="fas fa-sync-alt text-white text-3xl shadow-lg"></i>
-                    </div>
-                    
-                    <div class="z-10 flex gap-4 overflow-x-auto w-full px-4 text-white text-sm font-bold shadow-black drop-shadow-md">
-                        <span class="opacity-50">AR Emoji</span>
-                        <span class="text-yellow-400 border-b-2 border-yellow-400">Photo</span>
-                        <span class="opacity-50">Video</span>
-                        <span class="opacity-50">Live</span>
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderChat() {
-            setActiveNav(3);
-            const chatList = chats.map(c => `
-                <div class="flex items-center p-4 bg-white hover:bg-gray-50 border-b border-gray-100 cursor-pointer">
-                    <img src="${c.avatar}" class="w-12 h-12 rounded-full mr-4">
-                    <div class="flex-1">
-                        <div class="flex justify-between items-baseline">
-                            <h3 class="font-bold text-gray-800">${c.name}</h3>
-                            <span class="text-xs text-green-600 font-semibold">${c.time}</span>
-                        </div>
-                        <p class="text-gray-500 text-sm truncate w-64">${c.message}</p>
-                    </div>
-                </div>
-            `).join('');
-
-            document.getElementById('app-content').innerHTML = `
-                <div class="tab-content bg-white h-full">
-                    <div class="p-4 border-b border-gray-200 flex justify-between items-center">
-                        <h2 class="text-xl font-bold text-green-600">Chats</h2>
-                        <i class="fas fa-edit text-green-600 text-xl"></i>
-                    </div>
-                    ${chatList}
-                    <div class="flex justify-center mt-8 text-gray-400 text-xs">
-                        <i class="fas fa-lock mr-1"></i> End-to-end encrypted
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderProfile() {
-            setActiveNav(4);
-            document.getElementById('app-content').innerHTML = `
-                <div class="tab-content bg-white h-full p-4">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-xl font-bold">current_user</h2>
-                        <i class="fas fa-bars text-xl"></i>
-                    </div>
-                    
+        // --- VIEW: PROFILE ---
+        window.renderProfile = () => {
+            setActiveNav('nav-profile');
+            appContent.innerHTML = `
+                <div class="bg-white h-full p-4">
                     <div class="flex items-center mb-6">
-                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=User" class="w-20 h-20 rounded-full border p-1 mr-6">
-                        <div class="flex-1 flex justify-around text-center">
-                            <div>
-                                <span class="block font-bold text-lg">12</span>
-                                <span class="text-xs text-gray-500">Posts</span>
-                            </div>
-                            <div>
-                                <span class="block font-bold text-lg">1.2k</span>
-                                <span class="text-xs text-gray-500">Followers</span>
-                            </div>
-                            <div>
-                                <span class="block font-bold text-lg">350</span>
-                                <span class="text-xs text-gray-500">Following</span>
-                            </div>
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.displayName}" class="w-20 h-20 rounded-full border p-1 mr-6 bg-gray-50">
+                        <div class="flex-1">
+                            <h2 class="text-2xl font-bold">${currentUser.displayName || 'User'}</h2>
+                            <p class="text-sm text-gray-500">${currentUser.email}</p>
                         </div>
                     </div>
-                    
-                    <div class="mb-4">
-                        <h3 class="font-bold">Creachive User</h3>
-                        <p class="text-sm text-gray-600">Digital Creator | Java Dev ☕<br>Welcome to my hybrid social world.</p>
+                    <div class="flex justify-around text-center py-4 border-t border-b border-gray-100 mb-4">
+                        <div><span class="block font-bold">0</span><span class="text-xs text-gray-500">Posts</span></div>
+                        <div><span class="block font-bold">0</span><span class="text-xs text-gray-500">Followers</span></div>
+                        <div><span class="block font-bold">0</span><span class="text-xs text-gray-500">Following</span></div>
                     </div>
-
-                    <button class="w-full bg-gray-100 font-semibold py-1.5 rounded border border-gray-300 mb-6">Edit Profile</button>
-                    
-                    <div class="flex justify-around border-t border-gray-200 pt-2 text-2xl text-gray-400">
-                        <i class="fas fa-th text-black"></i>
-                        <i class="fas fa-user-tag"></i>
-                    </div>
-                    
-                    <div class="grid grid-cols-3 gap-0.5 mt-2">
-                         ${[1,2,3,4,5,6].map(i => `
-                            <img src="https://picsum.photos/300/300?random=${i+50}" class="w-full h-full object-cover aspect-square">
-                        `).join('')}
+                    <div class="text-center text-gray-400 mt-10">
+                        <i class="fas fa-camera text-4xl mb-2"></i>
+                        <p>No posts yet</p>
                     </div>
                 </div>
             `;
-        }
-
-        function toggleLike(element) {
-            if(element.classList.contains('far')) {
-                element.classList.remove('far');
-                element.classList.add('fas', 'text-red-500');
-            } else {
-                element.classList.add('far');
-                element.classList.remove('fas', 'text-red-500');
-            }
-        }
-
-        // Initialize
-        renderFeed();
-
+        };
     </script>
 </body>
 </html>
