@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom scrollbar hiding for horizontal scrolling sections */
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* iOS Safe Area fix for mobile navigation */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
