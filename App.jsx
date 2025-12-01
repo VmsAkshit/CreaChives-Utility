@@ -58,6 +58,13 @@ const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 // Strict path requirement for this demo environment
 const PUBLIC_DATA = `artifacts/${appId}/public/data`;
 
+// Mock stories with reliable DiceBear URLs instead of Pravatar
+const MOCK_STORIES = [
+  { id: 1, user: 'Demo User 1', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix' },
+  { id: 2, user: 'Demo User 2', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka' },
+  { id: 3, user: 'Demo User 3', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Zack' },
+];
+
 // --- COMPONENTS ---
 
 // 1. Auth Screen
@@ -288,6 +295,18 @@ const Feed = ({ currentUser }) => {
               </div>
               <span className="text-xs mt-2 block font-medium">Add Story</span>
             </div>
+
+            {/* MOCK STORIES (for visual demo when no real stories exist) */}
+            {MOCK_STORIES.map((story) => (
+               <div key={`mock-${story.id}`} className="relative inline-block w-20 flex-shrink-0 text-center cursor-pointer opacity-70">
+                <div className="relative w-16 h-16 mx-auto rounded-full p-[2px] bg-gray-200">
+                  <div className="bg-white p-[2px] rounded-full w-full h-full">
+                    <img src={story.avatar} alt={story.user} className="w-full h-full rounded-full object-cover" />
+                  </div>
+                </div>
+                <span className="text-xs mt-2 block font-medium truncate px-1">{story.user}</span>
+              </div>
+            ))}
 
             {/* Render Real Stories from Server */}
             {stories.map((story) => (
