@@ -1,5 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import App from './App.jsx'
 // --- LOCAL SETUP INSTRUCTIONS ---
 // 1. Uncomment the two lines below in your local project:
 // import App from './App.jsx'
