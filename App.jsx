@@ -44,13 +44,18 @@ import {
 } from 'firebase/firestore';
 
 // --- FIREBASE SETUP ---
+// INSTRUCTIONS: 
+// 1. For local development, replace the line below with your actual config object from the Firebase Console.
+// 2. Example: const firebaseConfig = { apiKey: "...", authDomain: "...", ... };
 const firebaseConfig = JSON.parse(__firebase_config);
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
 // --- CONSTANTS ---
+// Strict path requirement for this demo environment
 const PUBLIC_DATA = `artifacts/${appId}/public/data`;
 
 // --- COMPONENTS ---
@@ -688,5 +693,4 @@ const App = () => {
   );
 };
 
-export default App;
 export default App;
