@@ -400,3 +400,135 @@
                             ))}
                         </div>
                     </div>
+                    {selectedUser ? (
+                        <div className="flex-1 flex flex-col bg-[#eef1f5] h-full relative w-full">
+                            <div className="bg-white p-3 flex items-center justify-between border-b border-gray-200 shadow-sm z-10">
+                                <div className="flex items-center space-x-3">
+                                    <button onClick={() => setSelectedUser(null)} className="md:hidden text-gray-600"><Icons.ArrowLeft size={24} /></button>
+                                    <img src={selectedUser.avatar} className="w-10 h-10 rounded-full bg-gray-200" />
+                                    <div><h3 className="font-semibold text-gray-900">{selectedUser.name}</h3><div className="flex items-center space-x-1 text-xs text-green-600"><Icons.Lock size={10} /><span>Private Chat</span></div></div>
+                                </div>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                                {messages.map(msg => {
+                                    const isMe = msg.senderId === currentUser.id;
+                                    return (
+                                        <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                                            <div className={`max-w-[80%] rounded-2xl px-4 py-2 shadow-sm ${isMe ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white text-gray-900 rounded-bl-none'}`}>
+                                                <p className="text-sm leading-relaxed">{msg.text}</p>
+                                                <div className={`text-[10px] mt-1 flex items-center justify-end space-x-1 ${isMe ? 'text-blue-100' : 'text-gray-400'}`}><span>{msg.timestamp ? new Date(msg.timestamp.seconds * 1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '...'}</span><Icons.CheckCheck size={14} /></div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                                <div ref={messagesEndRef} />
+                            </div>
+                            <div className="bg-white p-3 border-t border-gray-200">
+                                <div className="flex items-center space-x-2">
+                                    <input type="text" value={activeMessage} onChange={(e) => setActiveMessage(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()} placeholder="Type message..." className="flex-1 bg-gray-100 border-0 rounded-full px-4 py-3 outline-none" />
+                                    <button onClick={handleSendMessage} className="p-3 bg-blue-600 text-white rounded-full shadow-md"><Icons.Send size={20} /></button>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="hidden md:flex flex-1 flex-col items-center justify-center bg-[#f0f2f5] p-8 text-center">
+                            <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-6"><Icons.MessageCircle size={48} className="text-blue-600" /></div>
+                            <h2 className="text-2xl font-bold text-gray-700">Select a chat</h2>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const Profile = ({ currentUser }) => (
+            <div className="flex-1 flex flex-col items-center justify-center h-screen bg-gray-50 md:ml-64 pb-20 md:pb-0 fade-in">
+                <div className="bg-white p-8 rounded-2xl shadow-sm text-center max-w-sm w-full">
+                    <div className="w-24 h-24 mx-auto mb-4 rounded-full p-1 border-2 border-blue-500"><img src={currentUser.avatar} className="w-full h-full rounded-full bg-gray-200" /></div>
+                    <h2 className="text-2xl font-bold text-gray-800">{currentUser.name}</h2>
+                    <div className="bg-gray-100 rounded-lg p-3 mt-4 mb-6"><p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Server ID</p><p className="font-mono text-sm text-gray-700 break-all select-all">{currentUser.id}</p></div>
+                </div>
+            </div>
+        );
+
+        const ErrorOverlay = ({ error }) => {
+            if (!error) return null;
+            let title = "An error occurred";
+            let msg = error.message;
+            if (msg.includes("offline")) {
+                title = "Connection Lost";
+                msg = "You seem to be offline. Check your internet.";
+            } else if (msg.includes("permission-denied") || msg.includes("disabled")) {
+                title = "Database Not Created";
+                msg = "It looks like the Firestore Database hasn't been created in the Firebase Console yet. Please enable it in 'Test Mode'.";
+            }
+
+            return (
+                <div className="fixed top-4 right-4 max-w-sm w-full bg-white border-l-4 border-red-500 shadow-xl rounded-lg p-4 z-50 animate-bounce">
+                    <div className="flex items-start">
+                        <div className="flex-shrink-0 text-red-500"><Icons.AlertCircle size={24} /></div>
+                        <div className="ml-3">
+                            <h3 className="text-sm font-medium text-gray-900">{title}</h3>
+                            <p className="mt-1 text-sm text-gray-500">{msg}</p>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [userProfile, setUserProfile] = useState(null);
+            const [activeTab, setActiveTab] = useState('feed');
+            const [loading, setLoading] = useState(true);
+            const [globalError, setGlobalError] = useState(null);
+
+            useEffect(() => {
+                if(!auth) return;
+                const unsub = auth.onAuthStateChanged(async (u) => {
+                    setUser(u);
+                    if (u) {
+                        try {
+                            const docRef = db.collection(`${PUBLIC_DATA}_users`).doc(u.uid);
+                            const snap = await docRef.get();
+                            if (snap.exists) setUserProfile({ id: u.uid, ...snap.data() });
+                            else setUserProfile(null);
+                        } catch (err) {
+                            setGlobalError(err);
+                        }
+                    }
+                    setLoading(false);
+                });
+                return () => unsub();
+            }, []);
+
+            const handleJoin = async (name) => {
+                if (!user) { await auth.signInAnonymously(); }
+                const u = auth.currentUser;
+                const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`;
+                const data = { name, avatar, joinedAt: firebase.firestore.FieldValue.serverTimestamp() };
+                try {
+                    await db.collection(`${PUBLIC_DATA}_users`).doc(u.uid).set(data);
+                    setUserProfile({ id: u.uid, ...data });
+                } catch(e) { setGlobalError(e); }
+            };
+
+            if (!auth) return <div className="h-screen flex items-center justify-center p-4">Config Error</div>;
+            if (loading) return <div className="h-screen flex items-center justify-center"><div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div></div>;
+            if (!userProfile) return <React.Fragment><ErrorOverlay error={globalError}/><AuthScreen onJoin={handleJoin} /></React.Fragment>;
+
+            return (
+                <div className="flex font-sans text-gray-900 bg-gray-100 min-h-screen">
+                    <ErrorOverlay error={globalError} />
+                    <Navigation activeTab={activeTab} setActiveTab={setActiveTab} currentUser={userProfile} />
+                    {activeTab === 'feed' && <Feed currentUser={userProfile} onError={setGlobalError} />}
+                    {activeTab === 'chats' && <Messaging currentUser={userProfile} onError={setGlobalError} />}
+                    {activeTab === 'profile' && <Profile currentUser={userProfile} />}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
